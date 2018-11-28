@@ -1,5 +1,5 @@
-Description
-===========
+Part 1: Socket-based Implementation
+---
 
 Input is  a TSV file containing one document per line. For every line, a document is created an added to the index. Field 1 is the document id, field 2 is
 a document label, and field 3 is the text.
@@ -8,8 +8,8 @@ The index data is saved to disk in several files, in plaint text format. The pos
 using the hash code of the terms to generate the key of the block where the term is being indexed. This way, the search
 component doesn't need to load the whole index in memory before start searching, speeding up the search.
 
-To Run
-------------
+To Run:
+---
 
 The project is configured to compile and run tests with maven2.
 
@@ -26,17 +26,17 @@ $ ./bin/index.sh books.tsv
 to index speeds-up the indexing process since the application has enough free RAM to work and no time is lost later to
 allocate the RAM on demand.
 
-When the index is ready, to search a term in the index use `search.sh`:
+When the index is ready, you can search without a server using `search.sh`:
 ```
 $ ./bin/search.sh {terms}
 ```
 
-To start the search server, open a new terminal window and execute `server.sh`:
+To start the search server, execute `server.sh`:
 ```
 $ ./bin/server.sh
 ```
 
-Then in the other terminal window, instead of using `search.sh`, use `client.sh` to send queries to the server.
+In another terminal, use `client.sh` to send queries to the server.
 ```
 $ ./bin/client.sh {terms}
 ```
