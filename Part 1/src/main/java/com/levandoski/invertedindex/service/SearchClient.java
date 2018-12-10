@@ -15,12 +15,15 @@ import java.util.Calendar;
 public class SearchClient {
 
 
-	public void sendQuery(String query, int port) throws IOException {
+	public void sendQuery(String[] query, int port) throws IOException {
 		Socket socket = new Socket("127.0.0.1", port);
 		BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		PrintWriter output = new PrintWriter(socket.getOutputStream(), false);
 
-		output.println(query + "\n\n");
+		for(int i=0; i<query.length; i++) {
+			output.print(query[i]+"\n");
+		}
+		output.print("end_of_sequence"+"\n");
 		output.flush();
 
 		String line = "";
@@ -43,8 +46,16 @@ public class SearchClient {
 		int port = SearchServer.DEFAULT_PORT;
 
 		try {
-			String query = args[0];
-			System.out.printf("sending query '%s' to server at port %d\n", query, port);
+			String[] query = args;
+			String queryString = "";
+			for(int i = 0; i < args.length; i++) {
+				if(i == args.length - 1) {
+					queryString = queryString + args[i];
+				} else {
+					queryString = queryString + args[i] + ", ";
+				}
+			}
+			System.out.printf("sending query '%s' to server at port %d\n", queryString, port);
 			client.sendQuery(query, port);
 		} catch (IOException e) {
 			System.out.println("can' connect with the server ");
