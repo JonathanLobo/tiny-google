@@ -1,7 +1,7 @@
 package com.levandoski.invertedindex.index;
 
 /**
- * This exception is thrown when some inconsistency in the index is found
+ * Thrown when some inconsistency in the index is found
  */
 public class CorruptIndexException extends Exception{
 	public CorruptIndexException(String msg) {

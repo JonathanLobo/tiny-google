@@ -15,9 +15,6 @@ import java.net.Socket;
 import java.util.Calendar;
 import java.util.TreeSet;
 
-/**
- * Created by bik on 4/3/14.
- */
 public class SearchServer {
 
 	public static final int DEFAULT_PORT = 9095;
@@ -36,13 +33,27 @@ public class SearchServer {
 	}
 
 	private void handleQuery(Socket socket) throws IOException {
-
 		BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		PrintWriter output = new PrintWriter(socket.getOutputStream(), false);
 
-		String query = input.readLine();
-		System.out.printf("\nnew query received: %s\n", query);
-		if (query == null || query.length() == 0) {
+		String[] query = new String[10];
+		String line;
+		int counter = 0;
+
+		System.out.println("Handling query...");
+
+		while(true) {
+			line = input.readLine();
+			if (line.equals("end_of_sequence")) {
+				break;
+			}
+			query[counter] = line;
+			counter++;
+		}
+
+		System.out.println("\nnew query received\n");
+
+		if (query == null || query.length == 0) {
 			output.print("SERVER: empty query received!!! \n");
 			output.flush();
 			output.close();
@@ -52,9 +63,11 @@ public class SearchServer {
 		Searcher indexSearch = null;
 		try {
 			indexSearch = SearchServer.getIndexSearcher();
-			TreeSet<Hit> results = indexSearch.search(query);
-			String out = indexSearch.printHits(results, query);
-			output.print(out);
+			TreeSet[] results = indexSearch.search(query);
+			for(int i = 0; i < query.length; i++) {
+				String out = indexSearch.printHits(results[i], query[i]);
+				output.print(out);
+			}
 			output.flush();
 		} catch (CorruptIndexException e) {
 			e.printStackTrace();

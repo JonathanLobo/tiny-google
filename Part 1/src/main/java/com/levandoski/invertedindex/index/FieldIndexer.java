@@ -99,6 +99,4 @@ public class FieldIndexer {
 		stream.end();
 		return invertedDoc;
 	}
-
-
 }

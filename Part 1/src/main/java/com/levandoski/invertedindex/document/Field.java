@@ -5,30 +5,16 @@ import com.levandoski.invertedindex.parse.DataStream;
 import com.levandoski.invertedindex.util.Logger;
 
 /**
- * A Field belongs to a Document, and is composed by a sequence of Terms. Even though, when the document is created
- * the Terms are indeed still in the form of String
+ * A Field belongs to a Document and is composed by a sequence of Terms. When the document is created
+ * the Terms are Strings.
  */
 public class Field {
 
-	/**
-	 * name of the field
-	 */
 	protected String name;
-
-	/**
-	 * data contained by the field, contains the terms to be indexed, and/or stored
-	 */
 	protected String data;
-
-
 	protected DataStream stream;
 
-
-	/**
-	 * configuration options for this field
-	 */
 	private FieldInfo options;
-
 
 	private static TextParser parser = null;
 
@@ -66,12 +52,6 @@ public class Field {
 		this.data = data;
 	}
 
-	/**
-	 * Obtain by reflection an instance of the Parser
-	 * With this approach, parsers can be defined per field, dynamically. The client only needs
-	 * to pass the  class within FieldInfo when the Field is declared.
-	 * @return A DataParser
-	 */
 	public TextParser getParser() {
 		Class c = options.getParser();
 		try {
@@ -83,7 +63,6 @@ public class Field {
 		return null;
 	}
 
-
 	public DataStream getDataStream(TextParser parser) {
 		if (!options.isIndexed()) {
 			return null;
@@ -93,5 +72,4 @@ public class Field {
 		}
 		return parser.dataStream(name, data);
 	}
-
 }

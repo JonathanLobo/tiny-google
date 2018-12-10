@@ -48,12 +48,19 @@ public class Searcher {
 	 * @param term
 	 * @return
 	 */
-	public TreeSet<Hit> search(String term) {
+	public TreeSet[] search(String[] terms) {
 		TreeSet<Hit> resultSet = null;
 		IndexReader reader = null;
+		TreeSet[] resultArray = new TreeSet[terms.length];
 		try {
 			//search for term occurrences in body field
-			resultSet = this.reader.search(Indexer.FieldName.BODY.toString(), term);
+			for(int i=0; i < terms.length; i++) {
+				if(terms[i] != null) {
+					System.out.println(terms[i]);
+					resultSet = this.reader.search(Indexer.FieldName.BODY.toString(), terms[i]);
+					resultArray[i] = resultSet;
+				}
+			}
 		} catch (IOException e) {
 			this.log.error("There was an IO error reading the index files ", e);
 		} catch (CorruptIndexException e) {
@@ -66,7 +73,7 @@ public class Searcher {
 				reader.close();
 			}
 		}
-		return resultSet;
+		return resultArray;
 	}
 
 	/**
@@ -75,24 +82,25 @@ public class Searcher {
 	 * @param term
 	 */
 	public String printHits(TreeSet<Hit> hits, String term) {
-		if(hits == null || hits.isEmpty()) {
-			return String.format("No documents found matching the term %s \n", term);
+		String out = "";
+		if (hits == null || hits.isEmpty()) {
+			//return String.format("No documents found matching the term %s \n", term);
+		} else {
+			out = String.format("%d Documents found matching the term %s: \n", hits.size(), term);
+
+			Iterator it = hits.descendingSet().iterator();
+			int i = 1;
+			while(it.hasNext()) {
+				Hit hit = (Hit) it.next();
+				out = out.concat(String.format("%d - %f - %s \n", i++, hit.score(), hit.document().fields().get("title").data()));
+			}
 		}
-
-		String out = String.format("%d Documents found matching the term %s: \n", hits.size(), term);
-
-		Iterator it = hits.descendingSet().iterator();
-		int i = 1;
-		while(it.hasNext()) {
-			Hit hit = (Hit) it.next();
-			out = out.concat(String.format("%d - %f - %s \n", i++, hit.score(), hit.document().fields().get("title").data()));
-		}
-
 		return out;
 	}
 
 
 	public static void main(String[] args) {
+
 		if (args.length == 0) {
 			System.out.println("No query term specified!");
 			System.exit(0);
@@ -102,8 +110,10 @@ public class Searcher {
 		try {
 			Searcher searcher = new Searcher();
 			searcher.openIndexReader();
-			TreeSet<Hit> results = searcher.search(args[0]);
-			System.out.println(searcher.printHits(results, args[0]));
+			TreeSet[] results = searcher.search(args);
+			for(int i = 0; i < args.length; i++) {
+				System.out.println(searcher.printHits(results[i], args[i]));
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (CorruptIndexException e) {
