@@ -15,10 +15,10 @@ The index data is saved to disk in several files, in plaint text format. The pos
 using the hash code of the terms to generate the key of the block where the term is being indexed. This way, the search
 component doesn't need to load the whole index in memory before start searching, speeding up the search.
 
-### To Run:
----
-
-The project is configured to compile and run tests with maven2.
+The project is configured to compile and run tests with maven2. First, move into the Part 1 directory:
+```
+$ cd Part\ 1
+```
 
 We submitted all class files so you shouldn't need to rebuild. If you do, run:
 ```
@@ -43,7 +43,10 @@ To start the search server, execute `server.sh`:
 $ ./bin/server.sh
 ```
 
-In another terminal, use `client.sh` to send queries to the server.
+In another terminal, use `client.sh` to send queries to the server. Up to 10 search terms are supported at once.
 ```
 $ ./bin/client.sh {terms}
 ```
+
+## Part 2: Hadoop-based Implementation
+---
