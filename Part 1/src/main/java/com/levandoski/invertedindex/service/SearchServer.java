@@ -64,10 +64,8 @@ public class SearchServer {
 		try {
 			indexSearch = SearchServer.getIndexSearcher();
 			TreeSet[] results = indexSearch.search(query);
-			for(int i = 0; i < query.length; i++) {
-				String out = indexSearch.printHits(results[i], query[i]);
-				output.print(out);
-			}
+			String out = indexSearch.printHits(results, query);
+			output.print(out);
 			output.flush();
 		} catch (CorruptIndexException e) {
 			e.printStackTrace();
@@ -116,11 +114,5 @@ public class SearchServer {
 				serverSocket.close();
 			} catch (IOException e) {}
 		}
-
-
-
-
-
-
 	}
 }

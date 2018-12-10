@@ -7,11 +7,16 @@ import com.levandoski.invertedindex.index.IndexReader;
 import com.levandoski.invertedindex.store.TxtFileDirectory;
 import com.levandoski.invertedindex.util.Benchmark;
 import com.levandoski.invertedindex.util.Logger;
+import com.levandoski.invertedindex.document.Document;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.TreeSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * Uses IndexReader to perform a search in the index
@@ -56,7 +61,6 @@ public class Searcher {
 			//search for term occurrences in body field
 			for(int i=0; i < terms.length; i++) {
 				if(terms[i] != null) {
-					System.out.println(terms[i]);
 					resultSet = this.reader.search(Indexer.FieldName.BODY.toString(), terms[i]);
 					resultArray[i] = resultSet;
 				}
@@ -81,20 +85,51 @@ public class Searcher {
 	 * @param hits
 	 * @param term
 	 */
-	public String printHits(TreeSet<Hit> hits, String term) {
+	public String printHits(TreeSet[] results, String[] args) {
 		String out = "";
-		if (hits == null || hits.isEmpty()) {
-			//return String.format("No documents found matching the term %s \n", term);
-		} else {
-			out = String.format("%d Documents found matching the term %s: \n", hits.size(), term);
 
-			Iterator it = hits.descendingSet().iterator();
-			int i = 1;
-			while(it.hasNext()) {
-				Hit hit = (Hit) it.next();
-				out = out.concat(String.format("%d - %f - %s \n", i++, hit.score(), hit.document().fields().get("title").data()));
+		TreeSet<Hit> termHits;
+		String term;
+		Iterator it;
+		Hit hit;
+		Boolean flag = false;
+
+		List<Document> docs = new ArrayList<Document>();
+		Document compDoc;
+
+		int counter;
+
+		for(int i=0; i < results.length; i++) {	// iterate through all keyword results lists
+			term = args[i];
+			termHits = results[i];
+			
+			if (termHits != null) {
+				it = termHits.descendingSet().iterator();
+
+				while (it.hasNext()) {
+					hit = (Hit) it.next();
+					for (int j = 0; j < docs.size(); j++) {
+						compDoc = docs.get(j);
+						if (hit.document().getDocumentId() == compDoc.getDocumentId()) {
+							docs.get(j).setDocumentScore(compDoc.getDocumentScore() + hit.score());
+							flag = true;
+						}
+					}
+					if (flag == false) {	// was not in list
+						docs.add(hit.document());
+						docs.get(docs.indexOf(hit.document())).setDocumentScore(hit.score());
+					}
+					flag = false;
+				}
 			}
 		}
+
+		Collections.sort(docs, Collections.reverseOrder());
+
+		for(int i = 0; i < docs.size(); i++) {
+			out = out.concat((i+1) + " - \t" + docs.get(i).getDocumentScore() + " - \t" +  docs.get(i).fields().get("title").data() + "\n");
+		}
+
 		return out;
 	}
 
@@ -111,9 +146,7 @@ public class Searcher {
 			Searcher searcher = new Searcher();
 			searcher.openIndexReader();
 			TreeSet[] results = searcher.search(args);
-			for(int i = 0; i < args.length; i++) {
-				System.out.println(searcher.printHits(results[i], args[i]));
-			}
+			System.out.println(searcher.printHits(results, args));
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (CorruptIndexException e) {
