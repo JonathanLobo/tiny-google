@@ -7,11 +7,16 @@ import com.levandoski.invertedindex.index.IndexReader;
 import com.levandoski.invertedindex.store.TxtFileDirectory;
 import com.levandoski.invertedindex.util.Benchmark;
 import com.levandoski.invertedindex.util.Logger;
+import com.levandoski.invertedindex.document.Document;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.TreeSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * Uses IndexReader to perform a search in the index
@@ -48,12 +53,18 @@ public class Searcher {
 	 * @param term
 	 * @return
 	 */
-	public TreeSet<Hit> search(String term) {
+	public TreeSet[] search(String[] terms) {
 		TreeSet<Hit> resultSet = null;
 		IndexReader reader = null;
+		TreeSet[] resultArray = new TreeSet[terms.length];
 		try {
 			//search for term occurrences in body field
-			resultSet = this.reader.search(Indexer.FieldName.BODY.toString(), term);
+			for(int i=0; i < terms.length; i++) {
+				if(terms[i] != null) {
+					resultSet = this.reader.search(Indexer.FieldName.BODY.toString(), terms[i]);
+					resultArray[i] = resultSet;
+				}
+			}
 		} catch (IOException e) {
 			this.log.error("There was an IO error reading the index files ", e);
 		} catch (CorruptIndexException e) {
@@ -66,7 +77,7 @@ public class Searcher {
 				reader.close();
 			}
 		}
-		return resultSet;
+		return resultArray;
 	}
 
 	/**
@@ -74,18 +85,49 @@ public class Searcher {
 	 * @param hits
 	 * @param term
 	 */
-	public String printHits(TreeSet<Hit> hits, String term) {
-		if(hits == null || hits.isEmpty()) {
-			return String.format("No documents found matching the term %s \n", term);
+	public String printHits(TreeSet[] results, String[] args) {
+		String out = "";
+
+		TreeSet<Hit> termHits;
+		String term;
+		Iterator it;
+		Hit hit;
+		Boolean flag = false;
+
+		List<Document> docs = new ArrayList<Document>();
+		Document compDoc;
+
+		int counter;
+
+		for(int i=0; i < results.length; i++) {	// iterate through all keyword results lists
+			term = args[i];
+			termHits = results[i];
+			
+			if (termHits != null) {
+				it = termHits.descendingSet().iterator();
+
+				while (it.hasNext()) {
+					hit = (Hit) it.next();
+					for (int j = 0; j < docs.size(); j++) {
+						compDoc = docs.get(j);
+						if (hit.document().getDocumentId() == compDoc.getDocumentId()) {
+							docs.get(j).setDocumentScore(compDoc.getDocumentScore() + hit.score());
+							flag = true;
+						}
+					}
+					if (flag == false) {	// was not in list
+						docs.add(hit.document());
+						docs.get(docs.indexOf(hit.document())).setDocumentScore(hit.score());
+					}
+					flag = false;
+				}
+			}
 		}
 
-		String out = String.format("%d Documents found matching the term %s: \n", hits.size(), term);
+		Collections.sort(docs, Collections.reverseOrder());
 
-		Iterator it = hits.descendingSet().iterator();
-		int i = 1;
-		while(it.hasNext()) {
-			Hit hit = (Hit) it.next();
-			out = out.concat(String.format("%d - %f - %s \n", i++, hit.score(), hit.document().fields().get("title").data()));
+		for(int i = 0; i < docs.size(); i++) {
+			out = out.concat((i+1) + " - \t" + docs.get(i).getDocumentScore() + " - \t" +  docs.get(i).fields().get("title").data() + "\n");
 		}
 
 		return out;
@@ -93,6 +135,7 @@ public class Searcher {
 
 
 	public static void main(String[] args) {
+
 		if (args.length == 0) {
 			System.out.println("No query term specified!");
 			System.exit(0);
@@ -102,8 +145,8 @@ public class Searcher {
 		try {
 			Searcher searcher = new Searcher();
 			searcher.openIndexReader();
-			TreeSet<Hit> results = searcher.search(args[0]);
-			System.out.println(searcher.printHits(results, args[0]));
+			TreeSet[] results = searcher.search(args);
+			System.out.println(searcher.printHits(results, args));
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (CorruptIndexException e) {

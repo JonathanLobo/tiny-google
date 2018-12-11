@@ -1,6 +1,5 @@
 package com.levandoski.invertedindex.index;
 
-
 import com.levandoski.invertedindex.document.Document;
 
 /**

@@ -44,7 +44,6 @@ public class Index {
 	 */
 	protected long numTerms = 0;
 
-
 	private static Index instance = null;
 
 	/**
