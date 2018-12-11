@@ -104,7 +104,7 @@ public class TinyGoogle {
             boolean isFirst = true;
             StringBuilder toReturn = new StringBuilder();
             for (Map.Entry<String, Integer> entry : hashMap.entrySet()) {
-                if(!isFirst) {
+                if (!isFirst) {
                     toReturn.append("\t");
                 }
                 isFirst = false;
@@ -167,7 +167,7 @@ public class TinyGoogle {
         System.out.println("____________________________________________________________________");
         try {
             mapReduceIndex(inPath, outPath);
-        } catch(Exception e){
+        } catch(Exception e) {
             e.printStackTrace();
         }
         getIndexMap(0);
@@ -197,20 +197,17 @@ public class TinyGoogle {
 
         try {
             Scanner f = new Scanner(new File(ii));
-            while(f.hasNextLine()){
+            while (f.hasNextLine()) {
                 String line = f.nextLine();
                 StringTokenizer itr = new StringTokenizer(line, " \t\n\f\r");
                 String term = itr.nextToken();
-                // System.out.println("Term:" + term);
 
-                while(itr.hasMoreTokens()) {
+                while (itr.hasMoreTokens()) {
                     String[] parts = itr.nextToken().split(":");
                     String doc = parts[0];
-                    // System.out.println("Doc: " + doc);
                     int freq = Integer.parseInt(parts[1]);
-                    // System.out.println("Freq: " + freq);
 
-                    if(!invertedIndex.containsKey(term)) {
+                    if (!invertedIndex.containsKey(term)) {
                         invertedIndex.put(term, new ArrayList<IndexPair>());
                         invertedIndex.get(term).add(new IndexPair(doc, freq));
                     } else {
@@ -311,7 +308,7 @@ public class TinyGoogle {
             }
         }
         else {
-            while(true) {
+            while (true) {
                 System.out.println("An index already exists on disk.\nWould you like to use the existing inverted index or build a new one?\n\t1. Use existing\n\t2. Build new");
                 input = kb.nextInt();
                 if (input > 2 || input < 1) {
@@ -333,7 +330,7 @@ public class TinyGoogle {
         do {
             System.out.println("Please choose an option:\n\t1. Perform a search query \n\t2. Add another directory to the index\n\t3. Quit");
             input = kb.nextInt();
-            if(input > 3 || input < 1) {
+            if (input > 3 || input < 1) {
                 System.out.println("Not a valid option.\nPlease try again.");
                 continue;
             }
