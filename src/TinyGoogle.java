@@ -1,28 +1,28 @@
-import java.io.IOException;
+import java.io.*;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.StringTokenizer;
+import java.util.*;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.conf.*;
 import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapred.*;
-import org.apache.hadoop.util.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+// import org.apache.hadoop.mapred.*;
+// import org.apache.hadoop.util.*;
 
 public class InvertedIndex {
 
-    public static class InvertedIndexMapper extends MapReduceBase
-            implements Mapper<LongWritable, Text, Text, Text> {
+    public static class InvertedIndexMapper extends Mapper<LongWritable, Text, Text, Text> {
 
         private final static Text word = new Text();
 
-        public void map(LongWritable key, Text value,
-                        OutputCollector<Text, Text> output, Reporter reporter)
-                throws IOException {
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 
             // get filename
-            FileSplit fileSplit = (FileSplit)reporter.getInputSplit();
+            FileSplit fileSplit = (FileSplit) context.getInputSplit();
             String fileName = fileSplit.getPath().getName();
 
             // get document ID
@@ -42,25 +42,22 @@ public class InvertedIndex {
                     continue;
                 }
                 word.set(nextToken);
-                output.collect(word, new Text(docId));
+                context.write(word, new Text(docId));
             }
         }
     }
 
 
 
-    public static class InvertedIndexReducer extends MapReduceBase
-            implements Reducer<Text, Text, Text, Text> {
+    public static class InvertedIndexReducer extends Reducer<Text, Text, Text, Text> {
 
-        public void reduce(Text key, Iterator<Text> values,
-                           OutputCollector<Text, Text> output, Reporter reporter)
-                throws IOException {
+        public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 
             HashMap<String, Integer> hashMap = new HashMap<String, Integer>();
-
-            while (values.hasNext()) {
+            Iterator<Text> vals = values.iterator();
+            while (vals.hasNext()) {
                 // value for each line is docId (key = word, value = docId)
-                String docId = values.next().toString();
+                String docId = vals.next().toString();
 
                 // get count for each docId from hashMap
                 Integer currentCount = hashMap.get(docId);
@@ -87,30 +84,26 @@ public class InvertedIndex {
                 toReturn.append(entry.getKey()).append(": ").append(entry.getValue());
             }
 
-            output.collect(key, new Text(toReturn.toString()));
+            context.write(key, new Text(toReturn.toString()));
         }
     }
 
 
-    public static void main(String[] args) {
-        JobClient client = new JobClient();
-        JobConf conf = new JobConf(InvertedIndex.class);
+    public static void main(String[] args) throws IOException, InterruptedException {
 
-        conf.setJobName("InvertedIndex");
-
-        conf.setOutputKeyClass(Text.class);
-        conf.setOutputValueClass(Text.class);
-
-        FileInputFormat.addInputPath(conf, new Path(args[0]));
-        FileOutputFormat.setOutputPath(conf, new Path(args[1]));
-
-        conf.setMapperClass(InvertedIndexMapper.class);
-        conf.setReducerClass(InvertedIndexReducer.class);
-
-        client.setConf(conf);
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "InvertedIndex");
+        job.setJarByClass(TinyGoogle.class);
+        job.setMapperClass(InvertedIndexMapper.class);
+        job.setCombinerClass(InvertedIndexReducer.class);
+        job.setReducerClass(InvertedIndexReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
         try {
-            JobClient.runJob(conf);
+            job.waitForCompletion(false);
         } catch (Exception e) {
             e.printStackTrace();
         }
