@@ -17,28 +17,28 @@ public class TinyGoogle {
     public static Path inPath;
     public static Path outPath;
 
-    public static class IndexPair implements Comparable<IndexPair>{
+    public static class IndexPair implements Comparable<IndexPair> {
         public String t;
         public int l;
 
-        public IndexPair(String t, int l){
+        public IndexPair(String t, int l) {
             this.t = t;
             this.l = l;
         }
 
-        public String getKey(){
+        public String getKey() {
             return t;
         }
 
-        public int getValue(){
+        public int getValue() {
             return l;
         }
 
         @Override
         public int compareTo(IndexPair p) {
-            if(p.getValue() > l) {
+            if (p.getValue() > l) {
                 return -1;
-            } else if(p.getValue() < l) {
+            } else if (p.getValue() < l) {
                 return 1;
             } else {
                 return 0;
@@ -94,8 +94,7 @@ public class TinyGoogle {
                 // update count for each docId
                 if (currentCount == null) {
                     hashMap.put(docId, 1);
-                }
-                else {
+                } else {
                     currentCount = currentCount + 1;
                     hashMap.put(docId, currentCount);
                 }
@@ -214,13 +213,12 @@ public class TinyGoogle {
                     if(!invertedIndex.containsKey(term)) {
                         invertedIndex.put(term, new ArrayList<IndexPair>());
                         invertedIndex.get(term).add(new IndexPair(doc, freq));
-                    } else{
+                    } else {
                         invertedIndex.get(term).add(new IndexPair(doc, freq));
                     }
                 }
             }
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -243,8 +241,7 @@ public class TinyGoogle {
             ArrayList<IndexPair> search = new ArrayList<IndexPair>();
             try {
                 search = (ArrayList<IndexPair>)((ArrayList<IndexPair>) invertedIndex.get(term)).clone();
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 // System.out.println("Term \""+ term +"\" could not be found in any document.");
                 // term not found in any document
                 isPresent = false;
@@ -252,7 +249,7 @@ public class TinyGoogle {
 
             if (isPresent) {
                 System.out.println("____________________________________________________________________");
-                while(!search.isEmpty()) {
+                while (!search.isEmpty()) {
                     IndexPair result = search.remove(0);
                     String docId = result.getKey();
                     Integer docTermCount = result.getValue();
@@ -298,10 +295,10 @@ public class TinyGoogle {
         int input;
         Scanner kb = new Scanner(System.in);
         if (!indexExists()) {
-            while(true) {
+            while (true) {
                 System.out.println("No existing inverted index was found.\nWould you like to generate one now?\n\t1. Yes\n\t2. No");
                 input = kb.nextInt();
-                if(input > 2 || input < 1) {
+                if (input > 2 || input < 1) {
                     System.out.println("Invalid option. Please try again.\n");
                 } else if (input == 1) {
                     buildInvertedIndex(0);
@@ -317,7 +314,7 @@ public class TinyGoogle {
             while(true) {
                 System.out.println("An index already exists on disk.\nWould you like to use the existing inverted index or build a new one?\n\t1. Use existing\n\t2. Build new");
                 input = kb.nextInt();
-                if(input > 2 || input < 1){
+                if (input > 2 || input < 1) {
                     System.out.println("Invalid option. Please try again.\n");
                 } else if (input == 2) {
                     System.out.println("The existing inverted index will be deleted.");
@@ -350,7 +347,7 @@ public class TinyGoogle {
                 // update the inverted index
                 buildInvertedIndex(1);
             }
-        } while(input != 3);
+        } while (input != 3);
         System.out.println("____________________________________________________________________");
         System.out.println("Goodbye!");
         System.out.println("____________________________________________________________________");
