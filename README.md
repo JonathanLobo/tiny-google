@@ -1,9 +1,7 @@
-# tiny-google
-
-CS 2750 Final Project
+# CS 2510 Final Project: TinyGoogle
 
 Andrew Levandoski - andrewlevandoski@pitt.edu
-Jonathan Lobo - jpl28@pitt.edu
+Jonathan Lobo - jonathan.lobo@pitt.edu
 
 ## Part 1: Socket-based Implementation
 ---
