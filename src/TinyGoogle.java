@@ -170,7 +170,11 @@ public class TinyGoogle {
         } catch(Exception e) {
             e.printStackTrace();
         }
-        getIndexMap(0);
+        if (mode == 0) {
+            getIndexMap(0);
+        } else {
+            getIndexMap(2);
+        }
         System.out.println("____________________________________________________________________");
         return;
     }
@@ -179,21 +183,19 @@ public class TinyGoogle {
 
         Runtime rt = Runtime.getRuntime();
         Process pr;
+        String ii;
 
         if (mode == 1) {
-
+            ii = "tiny_google.indx";
         } else if (indexExists()) {
             pr = rt.exec("hadoop fs -get " + outPath + "/part-r-00000 temp.indx");
             pr.waitFor();
-            pr = rt.exec("cat temp.indx >> tiny_google.indx");
-            new File("temp.indx").delete();
+            ii = "temp.indx";
         } else {
             pr = rt.exec("hadoop fs -get " + outPath + "/part-r-00000 tiny_google.indx");
             pr.waitFor();
+            ii = "tiny_google.indx";
         }
-
-
-        String ii = "tiny_google.indx";
 
         try {
             Scanner f = new Scanner(new File(ii));
@@ -219,6 +221,53 @@ public class TinyGoogle {
             e.printStackTrace();
         }
 
+        File temp = new File("temp.indx");
+        if (temp.isFile()) {
+            temp.delete();
+        }
+
+        if (mode == 2) {
+            outputMap();
+        }
+
+    }
+
+    public static void outputMap() throws IOException {
+        StringBuilder toOutput = new StringBuilder();
+        int i = 0;
+        for (Map.Entry<String,ArrayList<IndexPair>> entry : invertedIndex.entrySet()){
+            // iterate over the entries
+            String key = entry.getKey();
+            toOutput.append(key + "\t");
+
+            ArrayList<IndexPair> list = entry.getValue();
+            int j = 0;
+            for (IndexPair pair: list) {
+                // iterate over the pairs
+                toOutput.append(pair.getKey() + ":" + pair.getValue());
+                if (j++ != list.size() - 1) {
+                    toOutput.append("\t");
+                }
+            }
+
+            if (i++ != invertedIndex.size() - 1) {
+                toOutput.append("\n");
+            }
+
+        }
+
+        new File("tiny_google.indx").delete();
+        File file = new File("tiny_google.indx");
+        BufferedWriter writer = null;
+        try {
+            writer = new BufferedWriter(new FileWriter(file));
+            writer.append(toOutput);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally{
+            if (writer != null) writer.close();
+        }
+
     }
 
     public static void search() {
@@ -228,12 +277,12 @@ public class TinyGoogle {
         System.out.println("____________________________________________________________________");
         System.out.println("\tPlease wait while the search is completed ... ");
         System.out.println("____________________________________________________________________");
-        String split[] = response.split(" ");
+        String split[] = response.trim().replaceAll("\\p{Punct}", "").toLowerCase().split("\\s+");
 
         HashMap<String, Integer> resultDict = new HashMap<String, Integer>();
 
         for (int i = 0; i < split.length; i++) {
-            String term = split[i].replaceAll("\\p{Punct}", "").toLowerCase();
+            String term = split[i];
             boolean isPresent = true;
             ArrayList<IndexPair> search = new ArrayList<IndexPair>();
             try {
