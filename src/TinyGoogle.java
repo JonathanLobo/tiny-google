@@ -1,6 +1,7 @@
 import java.io.*;
-import java.util.HashMap;
 import java.util.*;
+import java.util.AbstractMap.SimpleEntry;
+import java.lang.*;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.conf.*;
@@ -10,12 +11,39 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-// import org.apache.hadoop.mapred.*;
-// import org.apache.hadoop.util.*;
 
 public class TinyGoogle {
 
-    public static HashMap<String, Integer> hashMap = new HashMap<String, Integer>();
+    public static HashMap<String, ArrayList<IndexPair>> invertedIndex = new HashMap<String, ArrayList<IndexPair>>();
+
+    public static class IndexPair implements Comparable<IndexPair>{
+        public String t;
+        public int l;
+
+        public IndexPair(String t, int l){
+            this.t = t;
+            this.l = l;
+        }
+
+        public String getKey(){
+            return t;
+        }
+
+        public int getValue(){
+            return l;
+        }
+
+        @Override
+        public int compareTo(IndexPair p) {
+            if(p.getValue() > l) {
+                return -1;
+            } else if(p.getValue() < l) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+    }
 
     public static class InvertedIndexMapper extends Mapper<LongWritable, Text, Text, Text> {
 
@@ -33,7 +61,7 @@ public class TinyGoogle {
             // get each line of document
             String line = value.toString().replaceAll("\\p{Punct}", "").toLowerCase();
 
-            // Divide lines into tokens
+            // divide lines into tokens
             StringTokenizer tokenizer = new StringTokenizer(line);
 
             // map output is (word, docId)
@@ -49,12 +77,11 @@ public class TinyGoogle {
         }
     }
 
-
-
     public static class InvertedIndexReducer extends Reducer<Text, Text, Text, Text> {
 
         public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 
+            HashMap<String, Integer> hashMap = new HashMap<String, Integer>();
             Iterator<Text> vals = values.iterator();
             while (vals.hasNext()) {
                 // value for each line is docId (key = word, value = docId)
@@ -73,7 +100,7 @@ public class TinyGoogle {
                 }
             }
 
-            // Set output format
+            // set output format
             boolean isFirst = true;
             StringBuilder toReturn = new StringBuilder();
             for (Map.Entry<String, Integer> entry : hashMap.entrySet()) {
@@ -81,7 +108,7 @@ public class TinyGoogle {
                     toReturn.append("\t");
                 }
                 isFirst = false;
-                toReturn.append(entry.getKey()).append(": ").append(entry.getValue());
+                toReturn.append(entry.getKey()).append(":").append(entry.getValue());
             }
 
             context.write(key, new Text(toReturn.toString()));
@@ -105,12 +132,6 @@ public class TinyGoogle {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        FileOutputStream fout = new FileOutputStream("tiny_google.indx");
-        ObjectOutputStream oos = new ObjectOutputStream(fout);
-        oos.writeObject(hashMap);
-        fout.close();
-        oos.close();
     }
 
     public static boolean indexExists() {
@@ -123,7 +144,7 @@ public class TinyGoogle {
 
     public static void buildInvertedIndex(int mode) throws IOException, InterruptedException {
         System.out.println("____________________________________________________________________");
-        if (mode == 1) {
+        if (mode == 0) {
             System.out.println("Building new Inverted Index.");
         } else {
             System.out.println("Adding new directory to Inverted Index.");
@@ -135,7 +156,7 @@ public class TinyGoogle {
         System.out.print("Please enter output path:\t");
         Path outPath = new Path(kb.nextLine());
         System.out.println("____________________________________________________________________");
-        if (mode == 1) {
+        if (mode == 0) {
             System.out.println("\tPlease wait while the inverted index is generated ... ");
         } else {
             System.out.println("\tPlease wait while the inverted index is updated ... ");
@@ -146,8 +167,96 @@ public class TinyGoogle {
         } catch(Exception e){
             e.printStackTrace();
         }
+        getIndexMap();
         System.out.println("____________________________________________________________________");
         return;
+    }
+
+    public static void getIndexMap() throws IOException, InterruptedException {
+
+        Runtime rt = Runtime.getRuntime();
+        Process pr = rt.exec("hadoop fs -get proj2/output/part-r-00000 tiny_google.indx");
+        pr.waitFor();
+        String ii = "tiny_google.indx";
+        try {
+            Scanner f = new Scanner(new File(ii));
+            while(f.hasNextLine()){
+                String line = f.nextLine();
+                StringTokenizer itr = new StringTokenizer(line, "\\s+");
+                String term = itr.nextToken();
+
+                while(itr.hasMoreTokens()) {
+                    String[] parts = itr.nextToken().split(":");
+                    String doc = parts[0];
+                    int freq = Integer.parseInt(parts[1]);
+
+                    if(!invertedIndex.containsKey(term)) {
+                        invertedIndex.put(term, new ArrayList<IndexPair>());
+                        invertedIndex.get(term).add(new IndexPair(doc, freq));
+                    } else{
+                        invertedIndex.get(term).add(new IndexPair(doc, freq));
+                    }
+                }
+            }
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
+    public static void search() {
+        Scanner kb = new Scanner(System.in);
+        System.out.print("Please enter a search query:\t");
+        String response = kb.nextLine();
+        System.out.println("____________________________________________________________________");
+        System.out.println("\tPlease wait while the search is completed ... ");
+        System.out.println("____________________________________________________________________");
+        String split[] = response.split(" ");
+
+        HashMap<String, Integer> resultDict = new HashMap<String, Integer>();
+
+        for (int i = 0; i < split.length; i++) {
+            String term = split[i].replaceAll("\\p{Punct}", "").toLowerCase();
+            boolean isPresent = true;
+            ArrayList<IndexPair> search = new ArrayList<IndexPair>();
+            try {
+                search = (ArrayList<IndexPair>)((ArrayList<IndexPair>) invertedIndex.get(term)).clone();
+            }
+            catch(Exception e) {
+                // System.out.println("Term \""+ term +"\" could not be found in any document.");
+                // term not found in any document
+                isPresent = false;
+            }
+
+            if (isPresent) {
+                System.out.println("____________________________________________________________________");
+                while(!search.isEmpty()) {
+                    IndexPair result = search.remove(0);
+                    String docId = result.getKey();
+                    Integer docTermCount = result.getValue();
+                    Integer currentCount = resultDict.getOrDefault(docId, 0);
+
+                    resultDict.put(docId, currentCount + docTermCount);
+                }
+            }
+        }
+
+        String[] keys = (String[]) resultDict.keySet().toArray();
+        ArrayList<IndexPair> list = new ArrayList<IndexPair>();
+        for (int i = 0; i < keys.length; i++) {
+            list.add(new IndexPair(keys[i], resultDict.get(keys[i])));
+        }
+
+        Collections.sort(list);
+
+        System.out.println("\tResults:");
+        System.out.println("____________________________________________________________________");
+        for (int i = 0; i < list.size(); i++) {
+            System.out.println(list.get(i).getKey());
+        }
+
+        System.out.println("____________________________________________________________________");
     }
 
     public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
@@ -186,9 +295,7 @@ public class TinyGoogle {
                     break;
                 } else {
                     System.out.println("Using the existing inverted index.");
-                    FileInputStream fin = new FileInputStream("tiny_google.indx");
-                    ObjectInputStream ois = new ObjectInputStream(fin);
-                    hashMap = (HashMap<String, Integer>) ois.readObject();
+                    getIndexMap();
                     System.out.println("____________________________________________________________________");
                     break;
                 }
@@ -207,6 +314,7 @@ public class TinyGoogle {
                 System.out.println("____________________________________________________________________");
             } else if (input == 1) {
                 // query the inverted index
+                search();
             } else if (input == 2) {
                 new File("tiny_google.indx").delete();
                 buildInvertedIndex(1);
