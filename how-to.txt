@@ -42,3 +42,11 @@ $ ./bin/client.sh {terms}
 --------------------------------------------------------------------------------
 Part 2: Hadoop-based implementation
 --------------------------------------------------------------------------------
+
+This program is designed to be run on the had6110.cs.pitt.edu server. A Shell script has been provided that compiles the source code, builds a jar, and executes TinyGoogle.
+
+Please note that a directory containing text documents must have been previously loaded into HDFS in order to be able to index any files.
+
+To run, execute `tiny-google.sh`:
+
+$ ./bin/tiny-google.sh
