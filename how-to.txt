@@ -49,4 +49,4 @@ Please note that a directory containing text documents must have been previously
 
 To run, execute `tiny-google.sh`:
 
-$ ./bin/tiny-google.sh
+$ ./tiny-google.sh
