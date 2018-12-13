@@ -123,6 +123,8 @@ public class TinyGoogle {
         job.setReducerClass(InvertedIndexReducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
+        // job.setNumMapTasks(1);
+        // job.setNumReduceTasks(1);
         FileInputFormat.addInputPath(job, inPath);
         FileOutputFormat.setOutputPath(job, outPath);
 
@@ -165,11 +167,16 @@ public class TinyGoogle {
             System.out.println("\tPlease wait while the inverted index is updated ... ");
         }
         System.out.println("____________________________________________________________________");
+
+        long startTime = System.nanoTime();
         try {
             mapReduceIndex(inPath, outPath);
         } catch(Exception e) {
             e.printStackTrace();
         }
+        long endTime = System.nanoTime();
+        System.out.println("\nBuilding Inverted Index took "+ ((endTime - startTime)/1000000) + " ms.");
+
         if (mode == 0) {
             getIndexMap(0);
         } else {
@@ -279,6 +286,7 @@ public class TinyGoogle {
         System.out.println("____________________________________________________________________");
         String split[] = response.trim().replaceAll("\\p{Punct}", "").toLowerCase().split("\\s+");
 
+        long startTime = System.nanoTime();
         HashMap<String, Integer> resultDict = new HashMap<String, Integer>();
 
         for (int i = 0; i < split.length; i++) {
@@ -329,6 +337,8 @@ public class TinyGoogle {
         } else {
             System.out.println("Your query returned no results!");
         }
+        long endTime = System.nanoTime();
+        System.out.println("\nSearch took. "+ ((endTime - startTime)/1000000) + " ms.");
 
         System.out.println("____________________________________________________________________");
     }
